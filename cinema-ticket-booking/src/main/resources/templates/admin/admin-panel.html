@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="uk" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Панель адміністратора</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-4">
+    <h1>Керування сеансами</h1>
+    <a href="/admin/sessions/new" class="btn btn-success mb-3">Додати новий сеанс</a>
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Назва фільму</th>
+            <th>Час початку</th>
+            <th>Зал</th>
+            <th>Дії</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="ses : ${sessions}">
+            <td th:text="${ses.id}">1</td>
+            <td th:text="${ses.title}">Назва</td>
+            <td th:text="${#temporals.format(ses.date, 'dd-MM-yyyy HH:mm')}">Час</td>
+            <td th:text="${ses.hallNumber}">Зал</td>
+            <td>
+                <a th:href="@{/admin/sessions/edit/{id}(id=${ses.id})}" class="btn btn-warning btn-sm">Редагувати</a>
+                <a th:href="@{/admin/sessions/delete/{id}(id=${ses.id})}" class="btn btn-danger btn-sm">Видалити</a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <a href="/sessions" class="btn btn-secondary mt-3">На сторінку гостя</a>
+</div>
+</body>
+</html>
