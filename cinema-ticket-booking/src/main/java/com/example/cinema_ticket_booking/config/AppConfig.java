@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Scope;
 public class AppConfig {
 
     @Bean
-    @Scope("singleton")
     public String appName(){
         return "Cinema Ticket Booking System";
     }
