@@ -18,8 +18,12 @@ public class SessionRepositoryImpl implements SessionRepository{
     private final AtomicLong idCounter = new AtomicLong();
 
     public SessionRepositoryImpl(){
-        save(new Session(null, "Dune 2", LocalDateTime.now().plusDays(15).plusHours(4), 4));
-        save(new Session(null, "Madagaskar", LocalDateTime.now().plusDays(7).plusHours(12), 6));
+        save(new Session(null, "Dune 2",
+                LocalDateTime.now().plusDays(15).plusHours(4), 4));
+        save(new Session(null, "Madagascar",
+                LocalDateTime.now().plusDays(7).plusHours(12), 6));
+        save(new Session(null, "<script>alert('Some text idk')</script>",
+                LocalDateTime.now().plusDays(1), 5));
     }
 
     @Override

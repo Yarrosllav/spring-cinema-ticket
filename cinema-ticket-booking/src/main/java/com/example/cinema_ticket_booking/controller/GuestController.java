@@ -30,6 +30,4 @@ public class GuestController {
         model.addAttribute("appName", applicationName);
         return "guest/sessions-list";
     }
-
-
 }
