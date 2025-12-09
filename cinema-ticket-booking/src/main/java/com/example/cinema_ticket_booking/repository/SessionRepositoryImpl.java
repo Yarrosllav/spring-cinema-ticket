@@ -3,51 +3,58 @@ package com.example.cinema_ticket_booking.repository;
 import com.example.cinema_ticket_booking.model.Session;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.*;
+import java.util.stream.Collectors;
+
 
 @Repository
 public class SessionRepositoryImpl implements SessionRepository{
 
-    private final Map<Long, Session> sessionStore = new ConcurrentHashMap<>();
-    private final AtomicLong idCounter = new AtomicLong();
+    private final TreeMap<Long, Session> sessions = new TreeMap<>();
+
 
     public SessionRepositoryImpl(){
-        save(new Session(null, "Dune 2",
-                LocalDateTime.now().plusDays(15).plusHours(4), 4));
-        save(new Session(null, "Madagascar",
-                LocalDateTime.now().plusDays(7).plusHours(12), 6));
-        save(new Session(null, "<script>alert('Some text idk')</script>",
-                LocalDateTime.now().plusDays(1), 5));
+        sessions.put(1L, new Session(1L, "Dune 2", LocalDateTime.now().plusDays(15), 4));
+        sessions.put(2L, new Session(2L, "Madagascar", LocalDateTime.now().plusDays(12), 6));
+        sessions.put(3L, new Session(3L, "Avatar", LocalDateTime.now().plusDays(4), 4));
+        sessions.put(4L, new Session(4L, "Avengers", LocalDateTime.now().plusDays(7), 1));
+        sessions.put(5L, new Session(5L, "The Silence of the Lambs", LocalDateTime.now().plusDays(5), 2));
+        sessions.put(6L, new Session(6L, "F1", LocalDateTime.now().plusDays(2), 3));
     }
 
     @Override
-    public List<Session> findAll() {
-        return new ArrayList<>(sessionStore.values());
+    public List<Session> findAll(LocalDate date, int page, int size) {
+        return sessions.values().stream()
+                .filter(session -> date == null || session.getDate().toLocalDate().equals(date))
+                .skip((long) page * size)
+                .limit(size)
+                .collect(Collectors.toList());
     }
 
     @Override
     public Optional<Session> findById(Long id) {
-        return Optional.ofNullable(sessionStore.get(id));
+        return Optional.ofNullable(sessions.get(id));
     }
 
     @Override
     public Session save(Session session) {
+
         if(session.getId() == null){
-            session.setId(idCounter.incrementAndGet());
+            Long id = sessions.lastKey() + 1;
+            session = new Session(id, session.getTitle(), session.getDate(), session.getHallNumber());
         }
-        sessionStore.put(session.getId(), session);
+
+        sessions.put(session.getId(), session);
 
         return session;
     }
 
     @Override
     public void deleteById(Long id) {
-        sessionStore.remove(id);
+        sessions.remove(id);
     }
+
 }
+

@@ -14,5 +14,4 @@ public class Session {
     private String title;
     private LocalDateTime date;
     private int hallNumber;
-
 }

@@ -5,7 +5,9 @@ import com.example.cinema_ticket_booking.repository.SessionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class SessionServiceImpl implements SessionService{
@@ -18,19 +20,18 @@ public class SessionServiceImpl implements SessionService{
     }
 
     @Override
-    public List<Session> findAll() {
-        return sessionRepository.findAll();
+    public List<Session> findAll(LocalDate date, int page, int size) {
+        return sessionRepository.findAll(date, page, size);
     }
 
     @Override
-    public Session findById(Long id) {
-        return sessionRepository.findById(id).
-                orElseThrow(() -> new RuntimeException("Session not found with id " + id));
+    public Optional<Session> findById(Long id) {
+        return sessionRepository.findById(id);
     }
 
     @Override
-    public void save(Session session) {
-        sessionRepository.save(session);
+    public Session save(Session session) {
+        return sessionRepository.save(session);
     }
 
     @Override
