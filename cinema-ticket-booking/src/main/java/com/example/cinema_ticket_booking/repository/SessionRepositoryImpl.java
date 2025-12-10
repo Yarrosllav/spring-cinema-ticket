@@ -1,60 +1,123 @@
 package com.example.cinema_ticket_booking.repository;
 
 import com.example.cinema_ticket_booking.model.Session;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
-
+import java.util.List;
+import java.util.Optional;
 
 @Repository
-public class SessionRepositoryImpl implements SessionRepository{
+public class SessionRepositoryImpl implements SessionRepository {
 
-    private final TreeMap<Long, Session> sessions = new TreeMap<>();
+    private final JdbcClient jdbcClient;
 
-
-    public SessionRepositoryImpl(){
-        sessions.put(1L, new Session(1L, "Dune 2", LocalDateTime.now().plusDays(15), 4));
-        sessions.put(2L, new Session(2L, "Madagascar", LocalDateTime.now().plusDays(12), 6));
-        sessions.put(3L, new Session(3L, "Avatar", LocalDateTime.now().plusDays(4), 4));
-        sessions.put(4L, new Session(4L, "Avengers", LocalDateTime.now().plusDays(7), 1));
-        sessions.put(5L, new Session(5L, "The Silence of the Lambs", LocalDateTime.now().plusDays(5), 2));
-        sessions.put(6L, new Session(6L, "F1", LocalDateTime.now().plusDays(2), 3));
+    @Autowired
+    public SessionRepositoryImpl(JdbcClient jdbcClient) {
+        this.jdbcClient = jdbcClient;
     }
 
     @Override
-    public List<Session> findAll(LocalDate date, int page, int size) {
-        return sessions.values().stream()
-                .filter(session -> date == null || session.getDate().toLocalDate().equals(date))
-                .skip((long) page * size)
-                .limit(size)
-                .collect(Collectors.toList());
+    public List<Session> findAll() {
+        String sql = """
+                SELECT s.id, s.movie_id, m.title as movie_title, s.hall_number, s.date_time, s.price 
+                FROM sessions s 
+                JOIN movies m ON s.movie_id = m.id
+                """;
+
+        return jdbcClient.sql(sql)
+                .query(Session.class)
+                .list();
     }
 
     @Override
     public Optional<Session> findById(Long id) {
-        return Optional.ofNullable(sessions.get(id));
+        String sql = """
+                SELECT s.id, s.movie_id, m.title as movie_title, s.hall_number, s.date_time, s.price 
+                FROM sessions s 
+                JOIN movies m ON s.movie_id = m.id 
+                WHERE s.id = :id
+                """;
+
+        return jdbcClient.sql(sql)
+                .param("id", id)
+                .query(Session.class)
+                .optional();
     }
 
     @Override
     public Session save(Session session) {
-
-        if(session.getId() == null){
-            Long id = sessions.lastKey() + 1;
-            session = new Session(id, session.getTitle(), session.getDate(), session.getHallNumber());
+        if (session.getId() == null) {
+            return create(session);
+        } else {
+            return update(session);
         }
+    }
 
-        sessions.put(session.getId(), session);
+    private Session create(Session session) {
+        String sql = "INSERT INTO sessions (movie_id, hall_number, date_time, price) VALUES (:movieId, :hallNumber, :dateTime, :price)";
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+
+        jdbcClient.sql(sql)
+                .param("movieId", session.getMovieId())
+                .param("hallNumber", session.getHallNumber())
+                .param("dateTime", session.getDateTime())
+                .param("price", session.getPrice())
+                .update(keyHolder);
+
+        if (keyHolder.getKey() != null) {
+            session.setId(keyHolder.getKey().longValue());
+        }
+        return session;
+    }
+
+    private Session update(Session session) {
+        String sql = """
+                UPDATE sessions 
+                SET movie_id = :movieId, 
+                    hall_number = :hallNumber, 
+                    date_time = :dateTime, 
+                    price = :price 
+                WHERE id = :id
+                """;
+
+        int rowsAffected = jdbcClient.sql(sql)
+                .param("movieId", session.getMovieId())
+                .param("hallNumber", session.getHallNumber())
+                .param("dateTime", session.getDateTime())
+                .param("price", session.getPrice())
+                .param("id", session.getId())
+                .update();
+
+        if (rowsAffected == 0) {
+            throw new RuntimeException("Session with id " + session.getId() + " not found");
+        }
 
         return session;
     }
 
     @Override
     public void deleteById(Long id) {
-        sessions.remove(id);
+        jdbcClient.sql("DELETE FROM sessions WHERE id = :id")
+                .param("id", id)
+                .update();
     }
 
+    @Override
+    public List<Session> findByMovieId(Long movieId) {
+        String sql = """
+                SELECT s.id, s.movie_id, m.title as movie_title, s.hall_number, s.date_time, s.price 
+                FROM sessions s 
+                JOIN movies m ON s.movie_id = m.id 
+                WHERE s.movie_id = :movieId
+                """;
+        return jdbcClient.sql(sql)
+                .param("movieId", movieId)
+                .query(Session.class)
+                .list();
+    }
 }
 

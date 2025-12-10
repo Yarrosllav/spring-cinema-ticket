@@ -6,40 +6,31 @@ import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @Tag(name = "Session Management", description = "API for creating, searching, updating, and deleting movie sessions")
 @RequestMapping("/sessions")
 public interface SessionControllerApi {
+
     @Operation(
             summary = "Get all sessions",
-            description = "Returns a list of sessions with support for date filtering and pagination."
+            description = "Returns a list of sessions. Supports optional filtering by date and result pagination."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "List retrieved successfully",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = Session.class)))
     })
     @GetMapping
-    List<Session> sessions(
-            @Parameter(description = "Filter by date (YYYY-MM-DD)")
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-
-            @Parameter(description = "Page number (0..N)")
-            @RequestParam(defaultValue = "0") int page,
-
-            @Parameter(description = "Page size")
-            @RequestParam(defaultValue = "3") int size
-    );
+    List<Session> getAll();
 
     @Operation(
             summary = "Get session by ID",
@@ -56,8 +47,21 @@ public interface SessionControllerApi {
     );
 
     @Operation(
+            summary = "Find sessions by Movie ID",
+            description = "Returns a list of sessions for a specific movie."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "List retrieved successfully",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Session.class)))
+    })
+    @GetMapping("/search")
+    List<Session> findByMovieId(
+            @Parameter(description = "Movie ID") @RequestParam Long id
+    );
+
+    @Operation(
             summary = "Update or Create session",
-            description = "Updates an existing session or creates a new one with the specified ID."
+            description = "Updates an existing session or creates a new one with the specified ID (Create or Replace strategy)."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Session updated or created successfully",
@@ -93,29 +97,29 @@ public interface SessionControllerApi {
     })
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void deleteByI(
-            @Parameter(description = "Session ID") @PathVariable Long id
+    void deleteById(
+                     @Parameter(description = "Session ID") @PathVariable Long id
     );
 
     @Operation(
-            summary = "Часткове оновлення (PATCH)",
+            summary = "Partial update (PATCH)",
             description = """
-                    Оновлює окремі поля сеансу. Підтримує два стандарти залежно від Content-Type:
+                    Updates specific fields of the session. Supports two standards depending on Content-Type:
                     
                     1. **JSON Patch (RFC 6902)**
-                       Content-Type: application/json-patch+json
-                       Передається масив операцій (add, remove, replace).
+                       `Content-Type: application/json-patch+json`
+                       Accepts an array of operations (add, remove, replace).
                     
                     2. **JSON Merge Patch (RFC 7386)**
-                       Content-Type: application/merge-patch+json
-                       Передається частковий JSON об'єкт з новими значеннями.
+                       `Content-Type: application/merge-patch+json`
+                       Accepts a partial JSON object with new values.
                     """,
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     content = {
                             @Content(
                                     mediaType = "application/json-patch+json",
                                     schema = @Schema(implementation = JsonPatch.class),
-                                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                                    examples = @ExampleObject(
                                             name = "JSON Patch Example",
                                             value = "[{\"op\": \"replace\", \"path\": \"/hallNumber\", \"value\": 5}]"
                                     )
@@ -123,7 +127,7 @@ public interface SessionControllerApi {
                             @Content(
                                     mediaType = "application/merge-patch+json",
                                     schema = @Schema(implementation = JsonMergePatch.class),
-                                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                                    examples = @ExampleObject(
                                             name = "Merge Patch Example",
                                             value = "{\"hallNumber\": 5}"
                                     )
@@ -132,14 +136,14 @@ public interface SessionControllerApi {
             )
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Сеанс оновлено",
+            @ApiResponse(responseCode = "200", description = "Session updated successfully",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = Session.class))),
-            @ApiResponse(responseCode = "400", description = "Некоректний формат патчу", content = @Content),
-            @ApiResponse(responseCode = "404", description = "Сеанс не знайдено", content = @Content)
+            @ApiResponse(responseCode = "400", description = "Invalid patch format", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Session not found", content = @Content)
     })
     @PatchMapping(path = "/{id}", consumes = "application/json-patch+json")
     ResponseEntity<Session> jsonPatch(
-            @Parameter(description = "ID сеансу") @PathVariable Long id,
+            @Parameter(description = "Session ID") @PathVariable Long id,
             @RequestBody JsonPatch patch
     );
 
@@ -148,5 +152,4 @@ public interface SessionControllerApi {
             @Parameter(hidden = true) @PathVariable Long id,
             @RequestBody JsonMergePatch patch
     );
-
 }

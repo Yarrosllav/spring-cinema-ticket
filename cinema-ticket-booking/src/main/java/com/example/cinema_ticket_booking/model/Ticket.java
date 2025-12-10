@@ -1,22 +1,19 @@
 package com.example.cinema_ticket_booking.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Component;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@Component
-@Scope("prototype")
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Ticket {
-
     private Long id;
-    private Session session;
-    private Seat seat;
+    private Long sessionId;
+    private Integer seatNumber;
+    private String guestName;
     private LocalDateTime purchaseTime;
-
-    public Ticket(){
-        this.purchaseTime = LocalDateTime.now();
-    }
 }
+

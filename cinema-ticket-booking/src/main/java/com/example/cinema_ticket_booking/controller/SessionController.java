@@ -9,15 +9,16 @@ import com.github.fge.jsonpatch.JsonPatch;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.Patch;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,12 +38,9 @@ public class SessionController implements SessionControllerApi {
 
     @Override
     @GetMapping
-    public List<Session> sessions(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "3") int size
+    public List<Session> getAll(
     ){
-        return sessionService.findAll(date, page, size);
+        return sessionService.findAll();
     }
 
     @Override
@@ -51,20 +49,33 @@ public class SessionController implements SessionControllerApi {
         return ResponseEntity.of(sessionService.findById(id));
     }
 
+    @GetMapping("/search")
+    public List<Session> findByMovieId(
+            @RequestParam Long id
+    ) {
+        return sessionService.findByMovieId(id);
+    }
+
     @Override
     @PutMapping("/{id}")
-    public ResponseEntity<Session> save(@PathVariable Long id, @RequestBody Session sessionDto){
+    public ResponseEntity<Session> save(@PathVariable Long id, @RequestBody @Valid Session sessionDto){
         if(sessionDto.getId() != null && !sessionDto.getId().equals(id)){
             return ResponseEntity.badRequest().build();
         }
-        Session session = new Session(id, sessionDto.getTitle(), sessionDto.getDate(), sessionDto.getHallNumber());
+        Session session = new Session();
+        session.setId(id);
+        session.setMovieId(sessionDto.getMovieId());
+        session.setHallNumber(sessionDto.getHallNumber());
+        session.setDateTime(sessionDto.getDateTime());
+        session.setPrice(sessionDto.getPrice());
+
         session = sessionService.save(session);
         return ResponseEntity.ok(session);
     }
 
     @Override
     @PostMapping
-    public ResponseEntity<Session> create(@RequestBody Session sessionDto){
+    public ResponseEntity<Session> create(@RequestBody @Valid Session sessionDto){
         if(sessionDto.getId() != null){
             return ResponseEntity.badRequest().build();
         }
@@ -77,8 +88,14 @@ public class SessionController implements SessionControllerApi {
     @Override
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteByI(@PathVariable Long id){
-        sessionService.deleteById(id);
+    public void deleteById(@PathVariable Long id){
+        try {
+            sessionService.deleteById(id);
+        } catch (DataIntegrityViolationException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "There are tickets for this session.");
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session not found.");
+        }
     }
 
     // RFC-6902 JSON Patch
@@ -106,11 +123,10 @@ public class SessionController implements SessionControllerApi {
             json = patch.apply(json);
             session = objectMapper.treeToValue(json, Session.class);
             session = sessionService.save(session);
-            return ResponseEntity.ok(session);
+            Session updatedSession = sessionService.findById(session.getId()).orElse(session);
+            return ResponseEntity.ok(updatedSession);
         } catch(JsonPatchException | JsonProcessingException e){
             return ResponseEntity.badRequest().build();
         }
     }
-
-
 }

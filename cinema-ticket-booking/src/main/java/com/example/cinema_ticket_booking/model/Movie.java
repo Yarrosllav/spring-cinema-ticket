@@ -1,34 +1,23 @@
 package com.example.cinema_ticket_booking.model;
 
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Session {
+public class Movie {
     private Long id;
 
     @NotNull
-    private Long movieId;
-
-    private String movieTitle;
-
-    @NotNull
-    @Min(value = 1)
-    private Integer hallNumber;
-
-    @NotNull
-    private LocalDateTime dateTime;
+    private String title;
 
     @NotNull
     @Positive
-    private BigDecimal price;
+    private Integer durationMin;
+
+    private String description;
 }
